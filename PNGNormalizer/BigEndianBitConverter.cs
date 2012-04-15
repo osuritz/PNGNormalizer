@@ -1,6 +1,6 @@
 namespace PNGNormalizer
 {
-    public sealed class BigEndianBitConverter : EndianBitConverter
+    internal sealed class BigEndianBitConverter : EndianBitConverter
     {
         public override bool IsLittleEndian
         {

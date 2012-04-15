@@ -1,11 +1,12 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.InteropServices;
-using System.Text;
 
 namespace PNGNormalizer
 {
+    /// <summary>
+    /// Converts base data types to an array of bytes, and an array of bytes to base data types.
+    /// Unlike <see cref="BitConverter"/>, this class supports Big- and Little-Endian.
+    /// </summary>
     public abstract class EndianBitConverter
     {
         /// <summary>
@@ -13,11 +14,26 @@ namespace PNGNormalizer
         /// </summary>
         public abstract bool IsLittleEndian { get; }
 
+        /// <summary>
+        /// The "endianess" of this instance.
+        /// </summary>
         public abstract Endianness Endianness { get; }
 
+        /// <summary>
+        /// Gets a converter with support for Big-Endian.
+        /// </summary>
         public static readonly EndianBitConverter BigEndianConverter = new BigEndianBitConverter();
+
+        /// <summary>
+        /// Gets a converter with support for LIttle-Endian.
+        /// </summary>
         public static readonly EndianBitConverter LittleEndianConverter = new LittleEndianConverter();
 
+        /// <summary>
+        /// Factory method for obtaining a converter for the specified "endianess".
+        /// </summary>
+        /// <param name="endianness">The endianness.</param>
+        /// <returns></returns>
         public static EndianBitConverter GetConverter(Endianness endianness)
         {
             if (endianness == Endianness.LittleEndian)
@@ -208,6 +224,7 @@ namespace PNGNormalizer
             {
                 throw new ArgumentNullException("value");
             }
+
             if (startIndex < 0 || startIndex > value.Length - bytesRequired)
             {
                 throw new ArgumentOutOfRangeException("startIndex");
@@ -270,6 +287,11 @@ namespace PNGNormalizer
             return buffer;
         }
 
+        /// <summary>
+        /// Gets the byte array for the specified <see cref="uint"/>, based on the current "endianess".
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <returns></returns>
         public byte[] GetBytes(uint value)
         {
             return this.GetBytes(value, 4);
@@ -293,10 +315,12 @@ namespace PNGNormalizer
             {
                 throw new ArgumentNullException("buffer", "Byte array must not be null");
             }
+            
             if (buffer.Length < index + bytes)
             {
-                throw new ArgumentOutOfRangeException("Buffer not big enough for value");
+                throw new ArgumentOutOfRangeException("buffer", "Buffer not big enough for value");
             }
+
             CopyBytesImpl(value, bytes, buffer, index);
         }
 

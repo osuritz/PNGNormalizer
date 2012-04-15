@@ -1,15 +1,12 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
 
 namespace PNGNormalizer
 {
     /// <summary>
     /// Similar to <see cref="BinaryWriter"/> but with the ability to specify the <see cref="Endianness"/>.
     /// </summary>
-    public class EndianBinaryWriter : IDisposable
+    internal class EndianBinaryWriter : IDisposable
     {
         private bool _disposed;
         private readonly Stream _stream;
@@ -18,8 +15,13 @@ namespace PNGNormalizer
         /// <summary>
         /// Buffer used for temporary storage during conversion from primitives
         /// </summary>
-        byte[] buffer = new byte[16];
+        private readonly byte[] _buffer = new byte[16];
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="EndianBinaryWriter"/> class.
+        /// </summary>
+        /// <param name="output">The output.</param>
+        /// <param name="bitConverter">The bit converter.</param>
         public EndianBinaryWriter(Stream output, EndianBitConverter bitConverter)
         {
             if (output == null)
@@ -44,7 +46,7 @@ namespace PNGNormalizer
         /// <summary>
         /// Gets the bit converter used to write values to the stream.
         /// </summary>
-        public EndianBitConverter bitConverter { get { return this._bitConverter; } }
+        public EndianBitConverter BitConverter { get { return this._bitConverter; } }
 
         /// <summary>
         /// Gets the underlying stream of the EndianBinaryWriter.
@@ -88,8 +90,8 @@ namespace PNGNormalizer
         /// <param name="value">The value to write</param>
         public void Write(bool value)
         {
-            bitConverter.CopyBytes(value, buffer, 0);
-            WriteInternal(buffer, 1);
+            BitConverter.CopyBytes(value, _buffer, 0);
+            WriteInternal(_buffer, 1);
         }
 
         /// <summary>
@@ -99,8 +101,8 @@ namespace PNGNormalizer
         /// <param name="value">The value to write</param>
         public void Write(short value)
         {
-            bitConverter.CopyBytes(value, buffer, 0);
-            WriteInternal(buffer, 2);
+            BitConverter.CopyBytes(value, _buffer, 0);
+            WriteInternal(_buffer, 2);
         }
 
         /// <summary>
@@ -110,8 +112,8 @@ namespace PNGNormalizer
         /// <param name="value">The value to write</param>
         public void Write(int value)
         {
-            bitConverter.CopyBytes(value, buffer, 0);
-            WriteInternal(buffer, 4);
+            BitConverter.CopyBytes(value, _buffer, 0);
+            WriteInternal(_buffer, 4);
         }
 
         /// <summary>
@@ -121,8 +123,8 @@ namespace PNGNormalizer
         /// <param name="value">The value to write</param>
         public void Write(long value)
         {
-            bitConverter.CopyBytes(value, buffer, 0);
-            WriteInternal(buffer, 8);
+            BitConverter.CopyBytes(value, _buffer, 0);
+            WriteInternal(_buffer, 8);
         }
 
         /// <summary>
@@ -132,8 +134,8 @@ namespace PNGNormalizer
         /// <param name="value">The value to write</param>
         public void Write(ushort value)
         {
-            bitConverter.CopyBytes(value, buffer, 0);
-            WriteInternal(buffer, 2);
+            BitConverter.CopyBytes(value, _buffer, 0);
+            WriteInternal(_buffer, 2);
         }
 
         /// <summary>
@@ -143,8 +145,8 @@ namespace PNGNormalizer
         /// <param name="value">The value to write</param>
         public void Write(uint value)
         {
-            bitConverter.CopyBytes(value, buffer, 0);
-            WriteInternal(buffer, 4);
+            BitConverter.CopyBytes(value, _buffer, 0);
+            WriteInternal(_buffer, 4);
         }
         
         /// <summary>
@@ -154,8 +156,8 @@ namespace PNGNormalizer
         /// <param name="value">The value to write</param>
         public void Write(ulong value)
         {
-            bitConverter.CopyBytes(value, buffer, 0);
-            WriteInternal(buffer, 8);
+            BitConverter.CopyBytes(value, _buffer, 0);
+            WriteInternal(_buffer, 8);
         }
 
         /// <summary>
@@ -165,8 +167,8 @@ namespace PNGNormalizer
         /// <param name="value">The value to write</param>
         public void Write(float value)
         {
-            bitConverter.CopyBytes(value, buffer, 0);
-            WriteInternal(buffer, 4);
+            BitConverter.CopyBytes(value, _buffer, 0);
+            WriteInternal(_buffer, 4);
         }
 
         /// <summary>
@@ -176,8 +178,8 @@ namespace PNGNormalizer
         /// <param name="value">The value to write</param>
         public void Write(double value)
         {
-            bitConverter.CopyBytes(value, buffer, 0);
-            WriteInternal(buffer, 8);
+            BitConverter.CopyBytes(value, _buffer, 0);
+            WriteInternal(_buffer, 8);
         }
 
         /// <summary>
@@ -187,8 +189,8 @@ namespace PNGNormalizer
         /// <param name="value">The value to write</param>
         public void Write(decimal value)
         {
-            bitConverter.CopyBytes(value, buffer, 0);
-            WriteInternal(buffer, 16);
+            BitConverter.CopyBytes(value, _buffer, 0);
+            WriteInternal(_buffer, 16);
         }
 
         /// <summary>
@@ -197,8 +199,8 @@ namespace PNGNormalizer
         /// <param name="value">The value to write</param>
         public void Write(byte value)
         {
-            buffer[0] = value;
-            WriteInternal(buffer, 1);
+            _buffer[0] = value;
+            WriteInternal(_buffer, 1);
         }
 
         /// <summary>
@@ -207,8 +209,8 @@ namespace PNGNormalizer
         /// <param name="value">The value to write</param>
         public void Write(sbyte value)
         {
-            buffer[0] = unchecked((byte)value);
-            WriteInternal(buffer, 1);
+            _buffer[0] = unchecked((byte)value);
+            WriteInternal(_buffer, 1);
         }
 
         /// <summary>

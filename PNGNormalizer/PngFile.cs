@@ -22,13 +22,12 @@ using System;
 using System.IO;
 using System.Text;
 using Ionic.Zlib;
-//using CompressionMode = System.IO.Compression.CompressionMode;
-//using DeflateStream = System.IO.Compression.DeflateStream;
 
 namespace PNGNormalizer
 {
-    //// https://github.com/pcans/PngCompote/blob/master/pngCompote.php
-    //// PNG binary format description at http://www.fileformat.info/format/png/corion.htm
+    /// <summary>
+    /// Reads PNG image files, including Apple-optimized, crushed PNG files used on iOS devies.
+    /// </summary>
     public class PngFile
     {
         private const string ChunkTypeCgbi = "CgBI";
@@ -40,6 +39,10 @@ namespace PNGNormalizer
         internal const UInt64 PngHeaderBigEndian = 0x89504E470D0A1A0A;
         internal const UInt64 PngHeaderLittleEndian = 0x0A1A0A0D474E5089;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="PngFile"/> class.
+        /// </summary>
+        /// <param name="data">The PNG data.</param>
         public PngFile(byte[] data)
         {
             using (var readerStream = new MemoryStream(data, false))
@@ -69,20 +72,41 @@ namespace PNGNormalizer
                 // Need to "rewind" by the size of the chunk header
                 readerStream.Seek(PngChunkHeader.ChunkHeaderSize * -1, SeekOrigin.Current);
 
-                this.UncrushPngData(data, readerStream, binaryReader);
+                this.UncrushPngData(readerStream, binaryReader);
             }
         }
 
-        public byte[] Data { get; set; }
+        #region Properties
 
-        public bool IsIphoneCrushed { get; set; }
+        /// <summary>
+        /// Gets or sets the normalized data.
+        /// </summary>
+        /// <value>
+        /// The data.
+        /// </value>
+        public byte[] Data { get; private set; }
 
-        public int Width { get; set; }
+        /// <summary>
+        /// Gets a value indicating whether the original data is iOS (iPhone/iPad/etc.) crushed (CgBI).
+        /// </summary>
+        /// <value>
+        /// 	<c>true</c> if the original data is iOS crushed; otherwise, <c>false</c>.
+        /// </value>
+        public bool IsIphoneCrushed { get; private set; }
 
-        public int Height { get; set; }
+        /// <summary>
+        /// Gets the image width.
+        /// </summary>
+        public int Width { get; private set; }
 
+        /// <summary>
+        /// Gets the image height.
+        /// </summary>
+        public int Height { get; private set; }
 
-        private void UncrushPngData(byte[] data, MemoryStream readerStream, BinaryReader binaryReader)
+        #endregion
+
+        private void UncrushPngData(Stream readerStream, BinaryReader binaryReader)
         {
             // Create new, uncrushed PNG data
             byte[] newPngData = null;
@@ -95,8 +119,6 @@ namespace PNGNormalizer
                 // Write header
                 writer.Write(PngHeaderBigEndian);
 
-                uint width = 0;
-                uint height = 0;
                 while (readerStream.Position < readerStream.Length - 1)
                 {
                     // Read next chunk
@@ -108,24 +130,18 @@ namespace PNGNormalizer
                         continue;
                     }
 
-                    ////byte[] chunkData = chunk.Data;
-                    byte[] inflatedData;
-
                     // Parse the header chunk
                     if (chunk.Header.IsChunkType(ChunkTypeImageHeader))
                     {
-                        width = chunk.Data.ReadBigEndianUInt32();
-                        height = chunk.Data.ReadBigEndianUInt32(startIndex: sizeof (UInt32));
+                        uint width = chunk.Data.ReadBigEndianUInt32();
+                        uint height = chunk.Data.ReadBigEndianUInt32(startIndex: sizeof (UInt32));
 
                         this.Width = (int) width;
                         this.Height = (int) height;
                     } else if (chunk.Header.IsChunkType(ChunkTypeImageData))
                     {
-                        // Uncompress (inflate) the image chunk
-                        uint bufferSize = width*height*4 + height;
-
-                        inflatedData = Decompress(chunk.Data);
-                        ////byte[] newData = this.GZInflate(chunk.Data);
+                        // Uncompress (inflate) the image data chunk.
+                        byte[] inflatedData = Decompress(chunk.Data);
 
                         /* Note:
                          * -----
@@ -134,7 +150,6 @@ namespace PNGNormalizer
                          */
 
                         // Swap red & blue bytes for each pixel (to switch back to RGBA).
-                        ////uint i = 0;
                         var scanLineSize = 1 + (this.Width * 4);   // Line length = filtertype + nb pixel on a line * size of a pixel
                         byte[] newData;
                         using (var dataRes = new MemoryStream())
@@ -155,8 +170,8 @@ namespace PNGNormalizer
                             newData = dataRes.ToArray();
                         }
 
-                        // Compress the image chunk
-                        byte[] deflatedData = Compress(newData, CompressionLevel.BestSpeed);
+                        // Compress (gzip) the image chunk.
+                        byte[] deflatedData = Compress(newData);
 
                         // Update dat length on chunk header
                         chunk.Header.DataLength = (uint) deflatedData.Length;
@@ -193,7 +208,7 @@ namespace PNGNormalizer
             // While the CgBI PNG image data is compressed with Deflate, a "real" PNG must use Zlib.
             using (var output = new MemoryStream())
             {
-                using (var deflateStream = new ZlibStream(output, Ionic.Zlib.CompressionMode.Compress, compressionLevel, true))
+                using (var deflateStream = new ZlibStream(output, CompressionMode.Compress, compressionLevel, true))
                 {
                     deflateStream.Write(data, 0, data.Length);
                 }
@@ -234,21 +249,10 @@ namespace PNGNormalizer
             /// <param name="reader">The reader.</param>
             public PngChunkHeader(BinaryReader reader)
             {
-                this.DataLength = reader.ReadBigEndianUInt32(); ;
+                this.DataLength = reader.ReadBigEndianUInt32();
 
                 char[] chunkType = reader.ReadChars(ChunkTypeLength);
                 this.ChunkType = new string(chunkType);
-            }
-
-            /// <summary>
-            /// Initializes a new instance of the <see cref="PngChunkHeader"/> class.
-            /// </summary>
-            /// <param name="dataLength">Length of the data.</param>
-            /// <param name="chunkType">Type of the chunk.</param>
-            public PngChunkHeader(UInt32 dataLength, string chunkType)
-            {
-                this.DataLength = dataLength;
-                this.ChunkType = chunkType;
             }
 
             public uint DataLength { get; set; }
@@ -292,7 +296,6 @@ namespace PNGNormalizer
             /// Writes the chunk to the specified <see cref="BinaryWriter"/>.
             /// </summary>
             /// <param name="writer">The writer.</param>
-            /// <param name="data">The chunk data.</param>
             public void WriteTo(EndianBinaryWriter writer)
             {
                 writer.Write(this.Data.Length);
@@ -301,11 +304,6 @@ namespace PNGNormalizer
                 byte[] crc = BitConverter.GetBytes(this.Crc);
                 writer.Write(crc);
             }
-
-            ////public void WriteTo(EndianBinaryWriter writer)
-            ////{
-            ////    WriteTo(writer, this.Data);
-            ////}
 
             /// <summary>
             /// Recomputes the Cyclyic Redundancy Check (CRC) for the current chunk.

@@ -3,8 +3,14 @@ using System.Security.Cryptography;
 
 namespace PNGNormalizer
 {
-    public class Crc32 : HashAlgorithm
+    /// <summary>
+    /// Provides facilities for computing the cyclic redundancy checksum polynomial of 32-bit length (CRC32).
+    /// </summary>
+    internal class Crc32 : HashAlgorithm
     {
+        /// <summary>
+        /// The default CRC32 seed.
+        /// </summary>
         public const uint DefaultSeed = 0xffffffff;
 
         readonly static uint[] CrcTable = new uint[] {
@@ -63,7 +69,7 @@ namespace PNGNormalizer
         };
 
         private uint _crcValue;
-        private uint _seed;
+        private readonly uint _seed;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Crc32"/> class.
@@ -80,16 +86,24 @@ namespace PNGNormalizer
         public Crc32()
             : this(DefaultSeed)
         {
-
         }
 
+        /// <summary>
+        /// Initializes an implementation of the <see cref="T:System.Security.Cryptography.HashAlgorithm"/> class.
+        /// </summary>
         public override void Initialize()
         {
             _crcValue = 0;
         }
 
+        /// <summary>
+        /// Core implementation of the CRC32 hash algorithm.
+        /// </summary>
+        /// <param name="buffer">The buffer.</param>
+        /// <param name="start">The start.</param>
+        /// <param name="length">The length.</param>
         protected override void HashCore(byte[] buffer, int start, int length)
-        {
+        {            
             _crcValue ^= this._seed;
 
             unchecked
@@ -103,15 +117,24 @@ namespace PNGNormalizer
             _crcValue ^= this._seed;
         }
 
+        /// <summary>
+        /// When overridden in a derived class, finalizes the hash computation after the last data is processed by the cryptographic stream object.
+        /// </summary>
+        /// <returns>
+        /// The computed hash code.
+        /// </returns>
         protected override byte[] HashFinal()
         {
-            this.HashValue = new byte[] { (byte)((_crcValue >> 24) & 0xff), 
+            this.HashValue = new[] { (byte)((_crcValue >> 24) & 0xff), 
                                       (byte)((_crcValue >> 16) & 0xff), 
                                       (byte)((_crcValue >> 8) & 0xff), 
                                       (byte)(_crcValue & 0xff) };
             return this.HashValue;
         }
 
+        /// <summary>
+        /// The computed cyclic redundancy checksum.
+        /// </summary>
         public uint CrcValue
         {
             get
@@ -120,6 +143,10 @@ namespace PNGNormalizer
             }
         }
 
+        /// <summary>
+        /// Gets the size, in bits, of the computed hash code.
+        /// </summary>
+        /// <returns>The size, in bits, of the computed hash code.</returns>
         public override int HashSize
         {
             get { return 32; }
